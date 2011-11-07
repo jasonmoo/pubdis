@@ -1,0 +1,17 @@
+<script src="http:/127.0.0.1:8001/socket.io/socket.io.js"></script>
+<script>
+  var socket = io.connect('http://127.0.0.1:8001');
+  socket.emit('subscribe',[
+    '1234/likes',
+    '1234/comments'
+  ]);
+  socket.on('1234/likes',function(data) {
+    document.body.innerText = data;
+  });
+  socket.on('1234/comments',function(data) {
+    document.body.innerText = data;
+  });
+</script>
+<html>
+  <body></body>
+</html>
