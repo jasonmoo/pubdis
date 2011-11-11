@@ -7,7 +7,7 @@
 abstract class Pubdis {
 
     protected static
-        $_pubdis_nodes = array('127.0.0.1:8000'),
+        $_pubdis_nodes = array('buff:6379'),
         $_logging = true;
 
     private static
@@ -41,6 +41,40 @@ abstract class Pubdis {
 
         curl_close($ch);
         self::$_log[] = $info;
+    }
+
+    public static function tcpPublish($id, $action, $data) {
+
+        $domain = explode(':',self::$_pubdis_nodes[array_rand(self::$_pubdis_nodes)]);
+        $host = 'tcp://'.$domain[0];
+        $port = isset($domain[1]) ? $domain[1] : 6379;
+
+        $channel = "$id/$action";
+        $channel_len = mb_strlen($channel,'utf8');
+
+        $data = json_encode($data);
+        $data_len = mb_strlen($data,'utf8');
+
+        try {
+            $socket = fsockopen($host, $port, $errno, $errstr);
+            if (!$socket) {
+                error_log('Unable to connect to redis: '.$errno.':'.$errstr, __LINE__);
+            }
+
+            $command  = "*3\r\n\$7\r\npublish\r\n\$$channel_len\r\n$channel\r\n\$$data_len\r\n";
+
+            stream_set_blocking($socket, 0); // set to non-blocking
+            fwrite($socket, $command);
+            fwrite($socket, $data);
+            fwrite($socket, "\r\n");
+            fclose($socket);
+
+            unset($data);
+        } catch (Exception $e) {
+            error_log('Unable to connect to redis: '.$e, __LINE__);
+            @fclose($socket);
+        }
+
     }
 
     public static function log() {
